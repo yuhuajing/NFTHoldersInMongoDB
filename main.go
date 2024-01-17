@@ -1,7 +1,6 @@
 package main
 
 import (
-	"awesomeProject/alphagate"
 	"awesomeProject/efes"
 	"awesomeProject/mongodb"
 	"context"
@@ -71,38 +70,23 @@ func main() {
 }
 
 func CalNFTHoldTime(blockTimeStamp int, contract, collection string, start, totalsupply int) {
-	//fmt.Println(totalsupply)
 	for i := start; i < totalsupply; i++ {
 		owner, err := OwnerOf(contract, int64(i))
-		fmt.Println(owner)
+		//fmt.Println(owner)
 		if err != nil {
 			log.Fatal(err)
 		}
-		//	ownerBalance, err := EfesBalanceOf(owner)
 		for page := 1; page <= 100; page++ {
 			res := getNFTLatestTrans(blockTimeStamp, contract, collection, strings.ToLower(owner), i, startblock, endblock, page, apikey)
 			if res {
 				break
 			}
 		}
-		//time.Sleep(500 * time.Millisecond)
 	}
 }
 
 func OwnerOf(contract string, id int64) (string, error) {
 	instance, err := efes.NewEfes(common.HexToAddress(contract), client)
-	if err != nil {
-		return "", nil
-	}
-	idOwner, err := instance.OwnerOf(&bind.CallOpts{BlockNumber: big.NewInt(blockNumber)}, big.NewInt(id))
-	if err != nil {
-		return "", nil
-	}
-	return idOwner.Hex(), nil
-}
-
-func AGOwnerOf(id int64) (string, error) {
-	instance, err := alphagate.NewAlphegate(common.HexToAddress(efescontract), client)
 	if err != nil {
 		return "", nil
 	}
