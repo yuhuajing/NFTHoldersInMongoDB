@@ -3,7 +3,6 @@ package main
 import (
 	"awesomeProject/efes"
 	"awesomeProject/mongodb"
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -39,7 +38,7 @@ type Trans struct {
 	Confirmations     string `json:"confirmations"`
 }
 
-type Blocks struct {
+type NFTData struct {
 	Status  string  `json:"status"`
 	Message string  `json:"message"`
 	Result  []Trans `json:"result"`
@@ -67,6 +66,7 @@ func main() {
 	CalNFTHoldTime(blockTimeStamp, agcontract, mongodb.DbcollectionAG, 515, agtotal)
 	time.Sleep(1 * time.Second)
 	CalNFTHoldTime(blockTimeStamp, efescontract, mongodb.DbcollectionEFES, 460, efestotal)
+	//getLevel(mongodb.DbcollectionAG)
 }
 
 func CalNFTHoldTime(blockTimeStamp int, contract, collection string, start, totalsupply int) {
@@ -111,7 +111,7 @@ func getNFTLatestTrans(blockTimeStamp int, contractaddress, collection, owner st
 		log.Fatal(err)
 	}
 
-	blocks := Blocks{}
+	blocks := NFTData{}
 	err = json.NewDecoder(resp.Body).Decode(&blocks)
 	if err != nil {
 		log.Fatal(err)
@@ -128,4 +128,56 @@ func getNFTLatestTrans(blockTimeStamp int, contractaddress, collection, owner st
 		}
 	}
 	return false
+}
+
+func getLevel(collection string) {
+	err, res := mongodb.QueryTokenID(collection)
+	if err != nil {
+		log.Fatalf("err in getting NFTID: %v", err)
+	}
+	//err = mongodb.InsertNFTDataDB(0, collection, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "")
+	//fmt.Println(len(res))
+	for _, value := range res {
+		NFTData := value.(*mongodb.NFTdata)
+		DoMetaDataReq(collection, NFTData.TokenID)
+	}
+}
+
+type AlphaGate struct {
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	ExternalURL string      `json:"external_url"`
+	TokenID     int         `json:"tokenId"`
+	Image       string      `json:"image"`
+	Attributes  []Attribute `json:"attributes"`
+}
+
+type Attribute struct {
+	TraitType string `json:"trait_type"`
+	Value     string `json:"value"`
+}
+
+func DoMetaDataReq(collection string, tokenId string) {
+	tokenID, _ := strconv.Atoi(tokenId)
+	metadataUrl := fmt.Sprintf("https://metadata.spacenation.online/alpha-gate/%d.json", tokenID)
+	req, _ := http.NewRequest("GET", metadataUrl, nil)
+	client := &http.Client{Timeout: time.Minute * 1}
+	resp, err := client.Do(req)
+	for err != nil {
+		log.Fatalf("get request failed: %s", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		log.Fatal(err)
+	}
+
+	blocks := AlphaGate{}
+	err = json.NewDecoder(resp.Body).Decode(&blocks)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = mongodb.UpdateLevel(collection, tokenID, blocks.Attributes[0].Value)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

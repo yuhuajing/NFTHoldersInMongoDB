@@ -81,4 +81,5 @@ type NFTdata struct {
 	Input             string `json:"input" bson:"input" msg:"input"`
 	Confirmations     string `json:"confirmations" bson:"confirmations" msg:"confirmations"`
 	HoldingTime       int    `json:"holdingTime" bson:"holdingTime" msg:"holdingTime"`
+	Level             string `json:"level" bson:"level" msg:"level"`
 }
